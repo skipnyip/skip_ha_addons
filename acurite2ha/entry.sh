@@ -43,9 +43,16 @@ bashio::log.info "AUTO_DISCOVERY =" $AUTO_DISCOVERY
 bashio::log.info "DEBUG =" $DEBUG
 while true; do
     bashio::log.blue "::::::::rtl_433 running output (re)starting now::::::::"
-    rtl_433 $PROTOCOL -C $UNITS -F mqtt://$MQTT_HOST:$MQTT_PORT,user=$MQTT_USERNAME,pass=$MQTT_PASSWORD,retain=$MQTT_RETAIN,events=$MQTT_TOPIC/events,states=$MQTT_TOPIC/states,devices=$MQTT_TOPIC[/model][/id][/channel:A] -M time:tz:local -M protocol -M level | /scripts/rtl_433_mqtt_hass.py
     
-    # If the rtl_433 command pipeline ever exits, the script will reach here.
-    bashio::log.warning "Process has stopped. Restarting in 10 seconds..."
+    # Start rtl_433 and pipe its output to a while loop.
+    # The 'read -t 300' command will wait for a new line of data.
+    # If no data is received for 120 seconds (2 minutes), the command
+    # will time out, causing the loop to exit and the process to restart.
+    /usr/bin/rtl_433 $PROTOCOL -C $UNITS -F mqtt://$MQTT_HOST:$MQTT_PORT,user=$MQTT_USERNAME,pass=$MQTT_PASSWORD,retain=$MQTT_RETAIN,events=$MQTT_TOPIC/events,states=$MQTT_TOPIC/states,devices=$MQTT_TOPIC[/model][/id][/channel:A] -M time:tz:local -M protocol -M level | \
+    while IFS= read -t 120 -r line; do
+        echo "$line"
+    done | /scripts/rtl_433_mqtt_hass.py
+
+    bashio::log.warning "Process has stopped or timed out. Restarting in 10 seconds..."
     sleep 10
 done
