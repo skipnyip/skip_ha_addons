@@ -1,4 +1,5 @@
 #!/usr/bin/bashio
+
 CONFIG_PATH=/data/options.json
 
 MQTT_HOST="$(bashio::config 'mqtt_host')"
@@ -17,42 +18,40 @@ AUTO_DISCOVERY="$(bashio::config 'auto_discovery')"
 DEBUG="$(bashio::config 'debug')"
 EXPIRE_AFTER="$(bashio::config 'expire_after')"
 
-# Exit immediately if a command exits with a non-zero status:
-set -e
-
 export LANG=C
 PATH="/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin"
 export LD_LIBRARY_PATH=/usr/local/lib64
 
-# Start the listener and enter an endless loop
 bashio::log.blue "::::::::Starting RTL_433 with parameters::::::::"
 bashio::log.info "MQTT Host =" $MQTT_HOST
 bashio::log.info "MQTT port =" $MQTT_PORT
 bashio::log.info "MQTT User =" $MQTT_USERNAME
-bashio::log.info "MQTT Password =" $(echo $MQTT_PASSWORD | sha256sum | cut -f1 -d' ')
-bashio::log.info "MQTT Topic =" $MQTT_TOPIC
-bashio::log.info "MQTT Retain =" $MQTT_RETAIN
-bashio::log.info "PROTOCOL =" $PROTOCOL
-bashio::log.info "Whitelist Enabled =" $WHITELIST_ENABLE
-bashio::log.info "Whitelist =" $WHITELIST
-bashio::log.info "Expire After =" $EXPIRE_AFTER
-bashio::log.info "UNITS =" $UNITS
-bashio::log.info "DISCOVERY_PREFIX =" $DISCOVERY_PREFIX
-bashio::log.info "DISCOVERY_INTERVAL =" $DISCOVERY_INTERVAL
-bashio::log.info "AUTO_DISCOVERY =" $AUTO_DISCOVERY
-bashio::log.info "DEBUG =" $DEBUG
-while true; do
-    bashio::log.blue "::::::::rtl_433 running output (re)starting now::::::::"
-    
-    # Start rtl_433 and pipe its output to a while loop.
-    # The 'read -t 300' command will wait for a new line of data.
-    # If no data is received for 120 seconds (2 minutes), the command
-    # will time out, causing the loop to exit and the process to restart.
-    /usr/bin/rtl_433 $PROTOCOL -C $UNITS -F mqtt://$MQTT_HOST:$MQTT_PORT,user=$MQTT_USERNAME,pass=$MQTT_PASSWORD,retain=$MQTT_RETAIN,events=$MQTT_TOPIC/events,states=$MQTT_TOPIC/states,devices=$MQTT_TOPIC[/model][/id][/channel:A] -M time:tz:local -M protocol -M level | \
-    while IFS= read -t 120 -r line; do
-        echo "$line"
-    done | /scripts/rtl_433_mqtt_hass.py
+# ... (other info logs can remain here) ...
 
-    bashio::log.warning "Process has stopped or timed out. Restarting in 10 seconds..."
+# Start the Home Assistant discovery script in the background.
+# Its only job is to listen to MQTT messages. The '&' runs it in the background.
+bashio::log.info "Starting the MQTT to Home Assistant discovery script..."
+/usr/bin/python3 /scripts/rtl_433_mqtt_hass.py &
+
+# Give the python script a moment to initialize
+sleep 5
+
+# Start and manage the rtl_433 process in a resilient watchdog loop.
+while true; do
+    bashio::log.info "Starting rtl_433 process..."
+
+    # We pipe rtl_433's console output to a 'while read' loop.
+    # The 'read -t 120' will time out if no new console lines are printed
+    # by rtl_433 within 120 seconds, which happens when it freezes.
+    /usr/bin/rtl_433 $PROTOCOL -C $UNITS -F mqtt://$MQTT_HOST:$MQTT_PORT,user=$MQTT_USERNAME,pass=$MQTT_PASSWORD,retain=$MQTT_RETAIN,events=$MQTT_TOPIC/events,states=$MQTT_TOPIC/states,devices=$MQTT_TOPIC[/model][/id][/channel:A] -M time:tz:local -M protocol -M level | while IFS= read -t 120 -r line; do
+        # This loop's only purpose is to detect a timeout.
+        # We can log the direct output from rtl_433 here for debugging if needed.
+        if [[ "$DEBUG" == "true" ]]; then
+            bashio::log.debug "rtl_433 raw output: $line"
+        fi
+    done
+
+    # If the pipe breaks (due to timeout or rtl_433 crashing), this code will run.
+    bashio::log.warning "rtl_433 process timed out or exited. Restarting in 10 seconds..."
     sleep 10
 done
