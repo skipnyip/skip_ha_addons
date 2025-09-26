@@ -136,7 +136,7 @@ mappings = {
             "value_template": "{{ value|float }}"
         }
     },
-     "temperature_1_F": {
+      "temperature_1_F": {
         "device_type": "sensor",
         "object_suffix": "F",
         "config": {
@@ -627,12 +627,12 @@ def publish_config(mqttc, topic, model, instance, channel, mapping):
     config["state_topic"] = "/".join([MQTT_TOPIC, model, instance, channel, topic])
     config["name"] = " ".join([model.replace("-", " "), instance, object_suffix])
     config["unique_id"] = "".join(["rtl433", device_type, instance, object_suffix])
-    config["availability_topic"] = "/".join([MQTT_TOPIC, "status"])
+    # config["availability_topic"] = "/".join([MQTT_TOPIC, "status"])
     config["expire_after"] = EXPIRE_AFTER
 
     # add Home Assistant device info
 
-     # Check for missing manufacturer info
+      # Check for missing manufacturer info
     if '-' in model:
         manufacturer, model = model.split("-", 1)
     else:
@@ -647,7 +647,7 @@ def publish_config(mqttc, topic, model, instance, channel, mapping):
 
     mqttc.publish(path, json.dumps(config),  qos=0, retain=True)
     logging.debug("Device Config was saved to {} : {}".format(path,json.dumps(config)))
-           
+            
 
 def bridge_event_to_hass(mqttc, topic, data):
     """Translate some rtl_433 sensor data to Home Assistant auto discovery."""
@@ -672,7 +672,7 @@ def bridge_event_to_hass(mqttc, topic, data):
         channel = 'A'
 
     device = '{}-{}'.format(data['id'],data['model'])
-     
+      
     if (whitelist_on == True) and (instance not in whitelist_list):
         # Let's reduce the noise in the log and hide the duplicate notifications.
         if (instance not in blocked):
@@ -689,7 +689,7 @@ def bridge_event_to_hass(mqttc, topic, data):
         for key in data.keys():
             if key in mappings:
                 publish_config(mqttc, key, model, instance, channel, mappings[key])
-              
+                
 
 
 def rtl_433_bridge():
@@ -725,3 +725,4 @@ def run():
 if __name__ == "__main__":
 
     run()
+
