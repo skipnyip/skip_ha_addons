@@ -44,7 +44,8 @@ discovery_timeouts = {}
 
 whitelist_list = WHITELIST.split()
 blocked = []
-rate_limited = {}
+# Caching removed
+# rate_limited = {}
 
 if DEBUG == "true":
     LOGLEVEL = os.environ.get('LOGLEVEL', 'DEBUG').upper()
@@ -686,7 +687,8 @@ def sanitize(text):
 
 def publish_config(mqttc, topic, model, instance, channel, mapping):
     """Publish Home Assistant auto discovery data."""
-    global discovery_timeouts
+    # Caching removed
+    # global discovery_timeouts
 
     device_type = mapping["device_type"]
     object_id = "_".join([model.replace("-", "_"), instance])
@@ -694,13 +696,13 @@ def publish_config(mqttc, topic, model, instance, channel, mapping):
 
     path = "/".join([DISCOVERY_PREFIX, device_type, object_id, object_suffix, "config"])
 
-    # check timeout
-    now = time.time()
-    if path in discovery_timeouts:
-        if discovery_timeouts[path] > now:
-            return
-
-    discovery_timeouts[path] = now + DISCOVERY_INTERVAL
+    # Caching removed
+    # # check timeout
+    # now = time.time()
+    # if path in discovery_timeouts:
+    #     if discovery_timeouts[path] > now:
+    #         return
+    # discovery_timeouts[path] = now + DISCOVERY_INTERVAL
 
     config = mapping["config"].copy()
     config["state_topic"] = "/".join([MQTT_TOPIC, model, instance, channel, topic])
@@ -767,10 +769,12 @@ def bridge_event_to_hass(mqttc, topic, data):
         return
 
     if (auto_discovery == True):
-        # Let's reduce the noise in the log and hide the duplicate notifications.
-        if (device not in rate_limited) or ( (datetime.now() - rate_limited[device]).seconds > 30 ):
-            logging.debug('Device: {} - Creating/Updating device config in Home Assistant for Auto discovery.'.format(device))
-        rate_limited[device] = datetime.now()
+        # Caching removed
+        # # Let's reduce the noise in the log and hide the duplicate notifications.
+        # if (device not in rate_limited) or ( (datetime.now() - rate_limited[device]).seconds > 30 ):
+        #     logging.debug('Device: {} - Creating/Updating device config in Home Assistant for Auto discovery.'.format(device))
+        # rate_limited[device] = datetime.now()
+        
         # detect known attributes
         for key in data.keys():
             if key in mappings:
