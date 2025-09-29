@@ -1,6 +1,6 @@
 {
   "name": "Acurite to Home Assistant",
-  "version": "0.3.34",
+  "version": "0.3.35",
   "slug": "acurite2ha",
   "description": "Acurite Sensors to Home Assistant via MQTT with Autodiscovery",
   "url": "https://github.com/skipnyip/skip_ha_addons",
