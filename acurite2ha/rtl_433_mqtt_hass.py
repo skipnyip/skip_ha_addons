@@ -36,6 +36,9 @@ MQTT_RETAIN = os.environ['MQTT_RETAIN']
 # Convert number environment variables to int
 MQTT_PORT = int(MQTT_PORT)
 DISCOVERY_INTERVAL = int(DISCOVERY_INTERVAL)
+# Make sure EXPIRE_AFTER is an integer
+EXPIRE_AFTER = int(EXPIRE_AFTER)
+
 
 discovery_timeouts = {}
 
@@ -65,7 +68,43 @@ mappings = {
         "config": {
             "device_class": "timestamp",
             "entity_category": "diagnostic",
-            "name": "last_seen",
+            "name": "Last Seen",
+            "value_template": "{{ value }}"
+        }
+    },
+    "protocol": {
+        "device_type": "sensor",
+        "object_suffix": "protocol",
+        "config": {
+            "entity_category": "diagnostic",
+            "name": "Protocol",
+            "value_template": "{{ value }}"
+        }
+    },
+    "sequence_num": {
+        "device_type": "sensor",
+        "object_suffix": "sequence",
+        "config": {
+            "entity_category": "diagnostic",
+            "name": "Sequence Number",
+            "value_template": "{{ value }}"
+        }
+    },
+    "message_type": {
+        "device_type": "sensor",
+        "object_suffix": "msg_type",
+        "config": {
+            "entity_category": "diagnostic",
+            "name": "Message Type",
+            "value_template": "{{ value }}"
+        }
+    },
+    "mod": {
+        "device_type": "sensor",
+        "object_suffix": "modulation",
+        "config": {
+            "entity_category": "diagnostic",
+            "name": "Modulation",
             "value_template": "{{ value }}"
         }
     },
@@ -75,7 +114,7 @@ mappings = {
         "config": {
             "device_class": "frequency",
             "entity_category": "diagnostic",
-            "name": "frequency",
+            "name": "Frequency",
             "unit_of_measurement": "MHz",
             "value_template": "{{ value }}"
         }
@@ -85,7 +124,7 @@ mappings = {
         "object_suffix": "channel",
         "config": {
             "device_class": "enum",
-            "name": "device_channel",
+            "name": "Device Channel",
             "options": ["A", "B", "C"],
             "entity_category": "diagnostic",
             "value_template": "{{ value }}"
@@ -305,7 +344,7 @@ mappings = {
         "device_type": "sensor",
         "object_suffix": "GS",
         "config": {
-            "name": "Wind max",
+            "name": "Wind Max",
             "device_class": "wind_speed",
             "state_class":"measurement",
             "unit_of_measurement": "km/h",
@@ -319,7 +358,7 @@ mappings = {
         "config": {
             "device_class": "wind_speed",
             "state_class":"measurement",
-            "name": "Wind max",
+            "name": "Wind Max",
             "unit_of_measurement": "m/s",
             "value_template": "{{ float(value|float) * 3.6 | round(2) }}"
         }
@@ -482,7 +521,7 @@ mappings = {
         "config": {
             "device_class": "illuminance",
             "state_class":"measurement",
-            "name": "Outside Luminancee",
+            "name": "Outside Luminance",
             "unit_of_measurement": "lx",
             "value_template": "{{ value|int }}"
         }
@@ -493,7 +532,7 @@ mappings = {
         "object_suffix": "light_klx",
         "config": {
             "device_class": "illuminance",
-            "name": "Outside Luminancee",
+            "name": "Outside Luminance",
             "unit_of_measurement": "lx",
             "value_template": "{{ value|int }}"
         }
@@ -551,7 +590,7 @@ mappings = {
         "object_suffix": "meter",
         "config": {
             "device_class": "gas",
-            "name": "meter",
+            "name": "Meter",
             "unit_of_measurement": "ft³",
             "value_template": "{{ value|float }}"
         }
@@ -565,6 +604,46 @@ mappings = {
             "value_template": "{{ value|int }}"
         }
     },
+    "active": {
+        "device_type": "binary_sensor",
+        "object_suffix": "active",
+        "config": {
+            "device_class": "running",
+            "entity_category": "diagnostic",
+            "name": "Active",
+            "payload_on": "1",
+            "payload_off": "0"
+        }
+    },
+    "rfi": {
+        "device_type": "binary_sensor",
+        "object_suffix": "rfi",
+        "config": {
+            "device_class": "problem",
+            "entity_category": "diagnostic",
+            "name": "Interference",
+            "payload_on": "1",
+            "payload_off": "0"
+        }
+    },
+    "exception": {
+        "device_type": "sensor",
+        "object_suffix": "exception",
+        "config": {
+            "entity_category": "diagnostic",
+            "name": "Exception",
+            "value_template": "{{ value }}"
+        }
+    },
+    "raw_msg": {
+        "device_type": "sensor",
+        "object_suffix": "raw_msg",
+        "config": {
+            "entity_category": "diagnostic",
+            "name": "Raw Message",
+            "value_template": "{{ value }}"
+        }
+    }
 }
 
 
@@ -627,12 +706,19 @@ def publish_config(mqttc, topic, model, instance, channel, mapping):
     config["state_topic"] = "/".join([MQTT_TOPIC, model, instance, channel, topic])
     config["name"] = " ".join([model.replace("-", " "), instance, object_suffix])
     config["unique_id"] = "".join(["rtl433", device_type, instance, object_suffix])
+
+    # Selectively apply expire_after to all sensors EXCEPT the 'last_seen' sensor.
+    if object_suffix == "last_seen":
+        config["expire_after"] = 0  # Never expire the 'last_seen' sensor
+    else:
+        config["expire_after"] = EXPIRE_AFTER # Use configured value for all other sensors
+
+    # We are now handling availability with expire_after, so we will disable the global availability topic.
     # config["availability_topic"] = "/".join([MQTT_TOPIC, "status"])
-    config["expire_after"] = EXPIRE_AFTER
+    
 
     # add Home Assistant device info
-
-      # Check for missing manufacturer info
+    # Check for missing manufacturer info
     if '-' in model:
         manufacturer, model = model.split("-", 1)
     else:
