@@ -709,7 +709,7 @@ def publish_config(mqttc, topic, model, instance, channel, mapping):
 
     # Selectively apply expire_after to all sensors EXCEPT the 'last_seen' sensor.
     if object_suffix == "last_seen":
-        config["expire_after"] = 0  # Never expire the 'last_seen' sensor
+        config["expire_after"] = 86400
     else:
         config["expire_after"] = EXPIRE_AFTER # Use configured value for all other sensors
 
@@ -771,12 +771,6 @@ def bridge_event_to_hass(mqttc, topic, data):
         if (device not in rate_limited) or ( (datetime.now() - rate_limited[device]).seconds > 30 ):
             logging.debug('Device: {} - Creating/Updating device config in Home Assistant for Auto discovery.'.format(device))
         rate_limited[device] = datetime.now()
-        
-        # Proactively update the last_seen sensor for this device
-        last_seen_topic = "/".join([MQTT_TOPIC, model, instance, channel, "time"])
-        # Format the timestamp to ISO 8601, which is what the 'timestamp' device class expects
-        timestamp = datetime.now().isoformat()
-        mqttc.publish(last_seen_topic, timestamp, qos=0, retain=False)
         
         # detect known attributes
         for key in data.keys():
