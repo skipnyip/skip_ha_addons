@@ -706,16 +706,8 @@ def publish_config(mqttc, topic, model, instance, channel, mapping):
     config["state_topic"] = "/".join([MQTT_TOPIC, model, instance, channel, topic])
     config["name"] = " ".join([model.replace("-", " "), instance, object_suffix])
     config["unique_id"] = "".join(["rtl433", device_type, instance, object_suffix])
-
-    # Selectively apply expire_after to all sensors EXCEPT the 'last_seen' sensor.
-    if object_suffix == "last_seen":
-        config["expire_after"] = 86400
-    else:
-        config["expire_after"] = EXPIRE_AFTER # Use configured value for all other sensors
-
-    # We are now handling availability with expire_after, so we will disable the global availability topic.
     # config["availability_topic"] = "/".join([MQTT_TOPIC, "status"])
-    
+    config["expire_after"] = EXPIRE_AFTER
 
     # add Home Assistant device info
     # Check for missing manufacturer info
