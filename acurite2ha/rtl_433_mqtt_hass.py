@@ -709,6 +709,7 @@ def publish_config(mqttc, topic, model, instance, channel, mapping):
     config["unique_id"] = "".join(["rtl433", device_type, instance, object_suffix])
     # config["availability_topic"] = "/".join([MQTT_TOPIC, "status"])
     
+    # Do not set an expire_after timeout for the "Last Seen" (time) sensor
     if topic != "time":
         config["expire_after"] = EXPIRE_AFTER
 
@@ -738,13 +739,15 @@ def bridge_event_to_hass(mqttc, topic, data):
         return
     model = sanitize(data["model"])
 
+    # Safely assign an instance ID
     if "id" in data:
         instance = str(data["id"])
     else:
-        instance = 0
+        # Fallback to the channel, or assign 'no_id' if neither exists
+        instance = str(data.get("channel", "no_id"))
         
-    if instance == 0:
-        logging.warning("Device Id:{} doesn't appear to be a actual device. Skipping..".format(data['id']))
+    if instance == "0" or instance == 0:
+        logging.warning("Device Model: {} reported an ID of 0. Skipping..".format(data.get('model', 'Unknown')))
         return
         
     if "channel" in data:
@@ -752,13 +755,13 @@ def bridge_event_to_hass(mqttc, topic, data):
     else:
         channel = 'A'
 
-    device = '{}-{}'.format(data['id'],data['model'])
+    device = '{}-{}'.format(instance, model)
       
     if (whitelist_on == True) and (instance not in whitelist_list):
         # Let's reduce the noise in the log and hide the duplicate notifications.
         if (instance not in blocked):
-            logging.info("Device Id:{} Model: {} not in whitelist. Add to the Whitelist to create device in Home Assistant.".format(data['id'],data['model']))
-        blocked.append('{}'.format(data['id']))
+            logging.info("Device Id:{} Model: {} not in whitelist. Add to the Whitelist to create device in Home Assistant.".format(instance, data.get('model', 'Unknown')))
+        blocked.append(instance)
         return
 
     if (auto_discovery == True):
@@ -772,7 +775,6 @@ def bridge_event_to_hass(mqttc, topic, data):
             if key in mappings:
                 publish_config(mqttc, key, model, instance, channel, mappings[key])
                 
-
 
 def rtl_433_bridge():
     """Run a MQTT Home Assistant auto discovery bridge for rtl_433."""
@@ -807,4 +809,3 @@ def run():
 if __name__ == "__main__":
 
     run()
-
