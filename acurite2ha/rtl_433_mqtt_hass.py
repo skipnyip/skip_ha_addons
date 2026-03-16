@@ -601,6 +601,7 @@ mappings = {
         "config": {
             "name": "Lightning Strike Count",
             "state_class":"total_increasing",
+            "unit_of_measurement": "strikes",
             "value_template": "{{ value|int }}"
         }
     },
@@ -707,7 +708,9 @@ def publish_config(mqttc, topic, model, instance, channel, mapping):
     config["name"] = " ".join([model.replace("-", " "), instance, object_suffix])
     config["unique_id"] = "".join(["rtl433", device_type, instance, object_suffix])
     # config["availability_topic"] = "/".join([MQTT_TOPIC, "status"])
-    config["expire_after"] = EXPIRE_AFTER
+    
+    if topic != "time":
+        config["expire_after"] = EXPIRE_AFTER
 
     # add Home Assistant device info
     # Check for missing manufacturer info
