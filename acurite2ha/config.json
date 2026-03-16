@@ -1,6 +1,6 @@
 {
   "name": "Acurite to Home Assistant",
-  "version": "0.3.41",
+  "version": "0.3.42",
   "slug": "acurite2ha",
   "description": "Acurite Sensors to Home Assistant via MQTT with Autodiscovery",
   "url": "https://github.com/skipnyip/skip_ha_addons",
@@ -16,7 +16,7 @@
     "mqtt_password": "pass",
     "mqtt_topic": "rtl_433",
     "mqtt_retain" : "true",
-    "protocol": "-R 11 -R 40 -R 41 -R 55 -R 74",
+    "protocol": "",
     "whitelist_enable": "false",
     "whitelist": "",
     "expire_after": 0,
@@ -34,9 +34,9 @@
     "mqtt_password": "str",
     "mqtt_topic": "str",
     "mqtt_retain" : "bool",
-    "protocol": "str",
+    "protocol": "str?", 
     "whitelist_enable": "bool",
-    "whitelist": "str",
+    "whitelist": "str?",
     "expire_after": "int",
     "units": "str",
     "discovery_prefix": "str",
@@ -45,4 +45,3 @@
     "debug": "bool"
    }
 }
-
