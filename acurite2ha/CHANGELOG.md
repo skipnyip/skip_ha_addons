@@ -3,6 +3,9 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [0.3.43]
+- Update sensor metadata, units, and value templates for wind, moisture, illuminance, and other readings.
+
 ## [0.3.42]
 - Made a change where a blank protocol listing wouldn't default to only AcuRite.
 
